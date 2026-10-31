@@ -1,0 +1,23 @@
+# Virtual environment and caches
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# Environment variables & OS files
+.env
+.DS_Store
+
+# Large data, raw corpora, and model checkpoints
+data/
+dataset_cache/
+*.pt
+*.pth
+*.bin
+*.h5
+*.onnx
+checkpoints/
+logs/
