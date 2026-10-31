@@ -12,20 +12,21 @@
 
 > **How do the inductive biases of Convolutional (1D CNN), Recurrent (Bi-LSTM), and Attention-Based (Transformer Encoder) architectures affect classification performance, convergence, and inference efficiency on short text intent classification when trained strictly from scratch under identical budgets?**
 
-We benchmark all three deep neural network families against a defensible unigram Bag-of-Words Logistic Regression baseline across three distinct seeds (`42`, `123`, `999`), conduct one controlled ablation per family, and test whether architectural rankings generalize across domains to a second dataset (ATIS).
+We evaluate all three deep neural network families against a defensible unigram Bag-of-Words Logistic Regression baseline across three random seeds (`42`, `123`, `999`), perform one controlled ablation per family, and test whether architectural rankings hold when transitioning from multi-domain voice assistant queries (SNIPS) to specialized flight-booking requests (ATIS).
 
 ---
 
 ## 2. Datasets & Access
 
 1. **Primary Dataset: SNIPS Voice Assistant**
-   * **Domain:** Spoken virtual assistant commands (*PlayMusic, BookRestaurant, GetWeather, RateBook, SearchScreeningEvent, AddToPlaylist, SearchCreativeWork*).
-   * **Size:** ~14,400 samples split into 70% Train, 15% Validation, and 15% Test.
-   * **Sequence Length:** Short command utterances (~9 words on average).
+   * **Domain:** 7 balanced virtual assistant intent classes (*AddToPlaylist, BookRestaurant, GetWeather, PlayMusic, RateBook, SearchCreativeWork, SearchScreeningEvent*).
+   * **Size:** ~14,484 samples partitioned into 70% Train, 15% Validation, and 15% Test.
+   * **Sequence Length:** Short command utterances (~9 tokens on average, max length capped at 35).
    * **Source:** Extracted dynamically via `load_dataset("benayas/snips")`.
-2. **Secondary Dataset: ATIS**
-   * **Domain:** Specialized airline travel and reservation requests.
-   * **Size:** ~5,800 samples split into identical 70/15/15 stratified partitions.
+
+2. **Secondary Dataset: ATIS (Airline Travel Information System)**
+   * **Domain:** Specialized airline travel and flight reservation queries with class imbalance.
+   * **Size:** ~5,871 samples partitioned using identical 70/15/15 stratified splits.
    * **Source:** Extracted dynamically via `load_dataset("tuetschek/atis")`.
 
 ---
@@ -34,16 +35,16 @@ We benchmark all three deep neural network families against a defensible unigram
 
 ```text
 Midterm_Project_DeepLearning_Group01/
-├── data_pipeline.py      # Data extraction, EDA plots, tokenization, train-only vocab, DataLoaders
-├── models.py             # PyTorch models: 1D CNN, Bi-LSTM, Transformer with ablation toggles
-├── main.py               # Master experiment orchestrator: runs all 33 seed/ablation runs
-├── eval_baseline.py      # Baseline evaluation, hyperparameter tuning & confusion matrix
-├── eval_cnn.py           # CNN evaluation, ablation metrics & confusion matrix
-├── eval_rnn.py           # Recurrent (Bi-LSTM) evaluation, ablation metrics & confusion matrix
-├── eval_transformer.py   # Transformer evaluation, ablation metrics & confusion matrix
+├── data_pipeline.py      # Data extraction, EDA generation, tokenization, train-only vocab, DataLoaders
+├── models.py             # PyTorch models: 1D CNN, Bi-LSTM, Transformer Encoder with ablation toggles
+├── main.py               # Master experiment orchestrator: runs all 33 seed/ablation runs across seeds
+├── eval_baseline.py      # Baseline evaluation, validation C-tuning & confusion matrix
+├── eval_cnn.py           # CNN evaluation, BatchNorm ablation metrics & confusion matrix
+├── eval_rnn.py           # Recurrent (Bi-LSTM) evaluation, bidirectionality ablation & confusion matrix
+├── eval_transformer.py   # Transformer evaluation, positional ablation & confusion matrix
 ├── compare.py            # Consolidated comparison tables & publication figures (Figures 1, 2, 3)
 ├── requirements.txt      # Pinned environment dependencies
-└── artifacts/            # Generated outputs, JSON logs, confusion matrices, and figures
+└── artifacts/            # Generated outputs, JSON logs, confusion matrices, and figure plots
 ```
 
 ---
@@ -51,7 +52,8 @@ Midterm_Project_DeepLearning_Group01/
 ## 4. How to Reproduce All Results
 
 ### Step 1: Environment Setup
-Clone the repository and set up a fresh virtual environment:
+Clone the repository and install dependencies in an isolated virtual environment:
+
 ```bash
 git clone https://github.com/your-username/Midterm_Project_DeepLearning_Group01.git
 cd Midterm_Project_DeepLearning_Group01
@@ -62,16 +64,17 @@ pip install -r requirements.txt
 
 ### Step 2: Run Full Benchmark Pipeline
 Execute the full benchmark suite across all seeds (`42`, `123`, `999`):
+
 ```bash
 python main.py
 ```
-*This trains the baseline, the three deep models, and all ablations on both SNIPS and ATIS, automatically exporting raw metrics to `artifacts/results.json`.*
+*Trains the baseline, the three deep models, and all ablations on both SNIPS and ATIS, automatically exporting results to `artifacts/results.json`.*
 
 ### Step 3: Generate Report Tables & Figures
 ```bash
 python compare.py
 ```
-*Prints the exact numerical tables for Sections 4, 5, 6, and 7 of the report and saves Figures 1, 2, and 3 into `artifacts/`.*
+*Outputs the formatted tables for Sections 4, 5, 6, and 7 of the report and writes Figures 1, 2, and 3 to `artifacts/`.*
 
 ### Step 4: Generate Individual Confusion Matrices
 ```bash
@@ -83,35 +86,49 @@ python eval_transformer.py
 
 ---
 
-## 5. Summary of Experimental Results
+## 5. Experimental Results (Exact Outputs)
 
 ### Core Comparison (Primary Dataset: SNIPS)
-*Decisions guided by validation performance; evaluated once on the test split.*
+*Hyperparameter selection guided by validation performance; test set evaluated once.*
 
 | Architecture | Seed 42 | Seed 123 | Seed 999 | Mean Macro F1 | Spread |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Baseline (Logistic Reg)** | 0.9234 | 0.9211 | 0.9275 | **0.9240** | 0.0064 |
-| **Convolutional (1D CNN)** | 0.9807 | 0.9796 | 0.9834 | **0.9812** | 0.0038 |
-| **Recurrent (Bi-LSTM)** | 0.9785 | 0.9791 | 0.9801 | **0.9792** | 0.0016 |
-| **Attention (Transformer)** | 0.9783 | 0.9742 | 0.9752 | **0.9759** | 0.0041 |
+| **Baseline (Logistic Reg)** | 0.9848 | 0.9834 | 0.9830 | **0.9837** | 0.0018 |
+| **Convolutional (1D CNN)** | 0.9848 | 0.9806 | 0.9830 | **0.9828** | 0.0042 |
+| **Recurrent (Bi-LSTM)** | 0.9829 | 0.9811 | 0.9798 | **0.9813** | 0.0032 |
+| **Attention (Transformer)** | 0.9838 | 0.9825 | 0.9760 | **0.9808** | 0.0078 |
 
 ### Ablation Studies (SNIPS)
-*Each ablation isolates and modifies exactly one architectural component.*
+*Each ablation isolates and modifies exactly one architectural component, holding all other hyperparameters fixed.*
 
-| Family | Component Tested | Standard Macro F1 | Ablated Macro F1 | Delta (Δ) | Finding |
+| Family | Component Tested | Standard Macro F1 | Ablated Macro F1 | Delta ($\Delta$) | Empirical Finding |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **Convolutional** | Batch Normalization | 0.9812 | 0.9780 | -0.0032 | BatchNorm accelerates training stability and regularizes feature activations. |
-| **Recurrent** | Bidirectionality | 0.9792 | 0.9695 | -0.0097 | Backward context significantly aids in intent disambiguation for early command verbs. |
-| **Attention** | Positional Encoding | 0.9759 | 0.9680 | -0.0079 | Without position encodings, self-attention degenerates into an un-ordered set function. |
+| **Convolutional** | Batch Normalization | 0.9828 | 0.9822 | **-0.0006** | Removing BatchNorm slightly decreases generalization stability across small mini-batches. |
+| **Recurrent** | Bidirectionality | 0.9813 | 0.9799 | **-0.0014** | Unidirectional processing suffers a drop because future contextual tokens help disambiguate early command verbs. |
+| **Attention** | Positional Encoding | 0.9808 | 0.9803 | **-0.0005** | Removing positional encodings marginally reduces performance, as short keyword presence dominates over syntactic ordering in SNIPS. |
 
-### Operational Inference Cost
-*Measured under fixed test batch conditions.*
+### Second Dataset Generalization Check (ATIS)
+*Evaluating whether the ranking and inductive biases observed on SNIPS generalize to ATIS.*
 
-| Architecture | Total Parameters | Latency / Sample (ms) | Peak VRAM / Memory |
-| :--- | :---: | :---: | :---: |
-| **1D CNN** | 273,223 | 0.138 ms | Minimal |
-| **Bi-LSTM** | 301,895 | 0.086 ms | Minimal |
-| **Transformer Encoder** | 301,831 | 0.039 ms | Minimal |
+| Architecture | SNIPS Mean F1 | ATIS Mean F1 | ATIS Rank | Architectural Behavior |
+| :--- | :---: | :---: | :---: | :--- |
+| **Baseline (Logistic Reg)** | 0.9837 | 0.7426 | Rank 4 | Bag-of-words degrades significantly on ATIS due to severe class imbalance and overlapping flight vocabulary. |
+| **Convolutional (1D CNN)** | 0.9828 | 0.7953 | Rank 3 | Captures local phrasal triggers (*"flight from"*, *"round trip"*), improving over baseline by +5.27%. |
+| **Recurrent (Bi-LSTM)** | 0.9813 | 0.8161 | Rank 2 | Masked pooling over temporal steps effectively resolves complex sequential syntax in flight requests. |
+| **Attention (Transformer)** | 0.9808 | 0.8192 | Rank 1 | Pairwise self-attention provides the strongest generalization on ATIS by directly linking source and destination slots. |
+
+> **Conclusion on Second Dataset:** **Ranking Reversal Confirmed.** While keyword-dense SNIPS allows simpler local/BoW features to perform competitively, the syntactic complexity and slot dependencies of ATIS cause the architectural ranking to reverse, with deep sequence models—led by the Transformer (0.8192) and Bi-LSTM (0.8161)—clearly outperforming the baseline (0.7426).
+
+### Operational Inference Cost Profiling
+*Measured on test batches with identical sequence length ($L=35$ tokens).*
+
+| Architecture | Total Trainable Parameters | Inference Latency / Sample (ms) | Peak Memory Allocation |
+| :--- | :---: | :---: | :--- |
+| **Convolutional (1D CNN)** | 587,071 | 0.3646 ms | Minimal (CPU/MPS BLAS) |
+| **Recurrent (Bi-LSTM)** | 734,855 | 0.1320 ms | Minimal (CPU/MPS BLAS) |
+| **Attention (Transformer)** | 734,727 | 0.0909 ms | Minimal (CPU/MPS BLAS) |
+
+*Parameter Counts:* All three deep architectures are within a factor of ~1.25 of each other, satisfying the project's parameter budget requirement.
 
 ---
 
@@ -128,11 +145,11 @@ python eval_transformer.py
 
 | Member Name | Humber Student ID | Assigned Piece & Role | Key Responsibilities |
 | :--- | :--- | :--- | :--- |
-| **Member 1** | N01234567 | Baseline & Shared Evaluation | Data pipeline, stratified splitting, TF-IDF baseline tuning, profiling metrics |
-| **Member 2** | N01234568 | Convolutional Model (1D CNN) | TextCNN implementation, BatchNorm ablation, kernel analysis |
-| **Member 3** | N01234569 | Recurrent Model (LSTM) | Bi-LSTM architecture, masked pooling fix, unidirectionality ablation |
-| **Member 4** | N01234570 | Attention Model (Transformer) | Transformer Encoder, padding masks, positional encoding ablation |
-| **Member 5** | N01234571 | Second Dataset Check (ATIS) | ATIS pipeline, cross-dataset ranking analysis, report consolidation |
+| **Member 1** | N01234567 | Baseline & Shared Evaluation | Data pipeline, stratified splitting, Logistic Regression grid tuning, inference cost profiling |
+| **Member 2** | N01234568 | Convolutional Model (1D CNN) | TextCNN implementation, BatchNorm ablation study, convolutional receptive field analysis |
+| **Member 3** | N01234569 | Recurrent Model (LSTM) | Bi-LSTM implementation, masked pooling mechanism, unidirectional ablation |
+| **Member 4** | N01234570 | Attention Model (Transformer) | Transformer Encoder, padding masking, positional encoding ablation |
+| **Member 5** | N01234571 | Second Dataset Check (ATIS) | ATIS pipeline porting, cross-dataset ranking analysis, report consolidation |
 
 ---
 
